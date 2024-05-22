@@ -13,21 +13,23 @@ class JobListViewModel: ObservableObject {
     @Published var showMailView = false
     @Published var allJobs: [Job] = [] {
         didSet {
-            sortedJobs = sortExistingJobs()
+            draftJobs = self.retrieveAllDraftJobs()
+            publishedJobs = self.retreiveAllPublishedJobs()
         }
     }
-    var sortedJobs: [Job] = []
+    var draftJobs: [Job] = []
+    var publishedJobs: [Job] = []
     
     private var db = Firestore.firestore()
     
     init() {
-        retrieveAllExistingJobsFromDb()
+        retrieveAllPublishedJobs()
     }
-
+    
     /**
-    retrieve the list of job that are available from the database
+     retrieve the list of job that are available from the database
      */
-    func retrieveAllExistingJobsFromDb() {
+    func retrieveAllPublishedJobs() {
         db.collection("jobs").getDocuments { snapshot, error in
             if let error = error {
                 print("Error fetching jobs: \(error.localizedDescription)")
@@ -40,21 +42,34 @@ class JobListViewModel: ObservableObject {
             }
             
             self.allJobs = documents.compactMap { document in
-                try? document.data(as: Job.self)
+                // Try to decode the document into a Job object
+                guard let job = try? document.data(as: Job.self) else {
+                    return nil
+                }
+                return job
             }
         }
     }
     
     /**
-     Jobs are required to be published. Unpublished jobs are jobs that are missing key details such as email address or phone number.
-     Jobs that are not published but created by the selected user is also displayed so that they can modify the job and make it publishable.
+     method to retrieve all draft jobs
      */
-    func sortExistingJobs() -> [Job] {
-        let creator = Auth.auth().currentUser?.uid ?? ""
-        let publishedJobs = allJobs.filter { $0.isPublished }
-        let unpublishedJobs = allJobs.filter { !$0.isPublished }
-        let unpublishedJobsCreatedByUser = unpublishedJobs.filter { $0.creator_id == creator }
-        return publishedJobs + unpublishedJobsCreatedByUser
+    func retrieveAllDraftJobs()  -> [Job]{
+        let creator = Auth.auth().currentUser?.uid;
+        let filteredDraftJobs = allJobs.filter({
+            $0.creator_id == creator && !$0.isPublished
+        })
+        return filteredDraftJobs;
+    }
+    
+    /**
+     method to retrieve all published jobs
+     */
+    func retreiveAllPublishedJobs() -> [Job] {
+        let filteredPublishedJobs = allJobs.filter({
+            $0.isPublished
+        })
+        return filteredPublishedJobs;
     }
     
     /**
@@ -65,7 +80,7 @@ class JobListViewModel: ObservableObject {
             let filteredListings = allJobs.filter({
                 $0.title.lowercased() == searchInput.lowercased()
             })
-
+            
             self.allJobs = filteredListings.isEmpty ? allJobs : filteredListings
             return
         }
@@ -86,13 +101,12 @@ class JobListViewModel: ObservableObject {
             self.allJobs = filteredListings.isEmpty ? allJobs : filteredListings
             return
         } else {
-            retrieveAllExistingJobsFromDb()
+            retrieveAllPublishedJobs()
         }
     }
     
-    
     /**
-     Add job lets the audience add a new job and update the ui accordingly. Once the user adds a job, it would be displayed in the list 
+     Add job lets the audience add a new job and update the ui accordingly. Once the user adds a job, it would be displayed in the list
      */
     func addJob(_ job: Job, completion: @escaping () -> Void) {
         db.collection("jobs").addDocument(data: job.asDictionary()) { error in
@@ -116,6 +130,13 @@ class JobListViewModel: ObservableObject {
             }
             self.allJobs.removeAll { $0.id == id }
         }
+    }
+    
+    /**
+     Returns true if the job is created by the current user.
+     */
+    func userCreatedJob(_ job: Job) -> Bool {
+        return  job.creator_id == Auth.auth().currentUser?.uid
     }
     
     /**

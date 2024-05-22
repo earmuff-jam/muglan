@@ -8,60 +8,68 @@ import SwiftUI
 
 struct SignupView: View {
     
-    @StateObject var viewModal = SignupViewViewModel()
+    @StateObject var viewModel = SignupViewViewModel()
     
     var body: some View {
         VStack {
             HeaderView(title: "Register", subtitle: "Get notified", angleOfRotation: -15, backgroundColor: .yellow)
             
-            ScrollView {
-                VStack(spacing: 10) {
-                    TextField("Email Address", text: $viewModal.email_address_text)
+            Form {
+                Section(header: Text("Account Information")) {
+                    TextField("Email Address", text: $viewModel.email_address_text)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .autocorrectionDisabled()
                         .autocapitalization(.none)
                         .padding()
                     
-                    TextField("Username", text: $viewModal.username)
+                    TextField("Username", text: $viewModel.username)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .autocorrectionDisabled()
                         .autocapitalization(.none)
                         .padding()
-                    
-                    TextField("First name", text: $viewModal.firstname)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .autocorrectionDisabled()
-                        .autocapitalization(.none)
-                        .padding()
-                    
-                    TextField("Last name", text: $viewModal.lastname)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .autocorrectionDisabled()
-                        .autocapitalization(.none)
-                        .padding()
-                    
-                    SecureField("Password", text: $viewModal.password)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .autocorrectionDisabled()
-                        .autocapitalization(.none)
-                        .padding()
-                    
-                    if !viewModal.errorMessage.isEmpty {
-                        Text(viewModal.errorMessage).foregroundColor(.red)
-                            .padding(.horizontal)
-                    }
-                    
-                    MgButton(title: "Register", backgroundColor: .green) {
-                        // action
-                        viewModal.register()
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 44) // Ensure the button expands to full width
-                    .padding(.horizontal)
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 20)
+                
+                Section(header: Text("Personal Information")) {
+                    TextField("First name", text: $viewModel.firstname)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .autocorrectionDisabled()
+                        .autocapitalization(.none)
+                        .padding()
+                    
+                    TextField("Last name", text: $viewModel.lastname)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .autocorrectionDisabled()
+                        .autocapitalization(.none)
+                        .padding()
+                }
+                
+                Section(header: Text("Password")) {
+                    SecureField("Password", text: $viewModel.password)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .autocorrectionDisabled()
+                        .autocapitalization(.none)
+                        .padding()
+                }
+                
+                    if !viewModel.errorMessage.isEmpty {
+                        Text(viewModel.errorMessage)
+                            .foregroundColor(.red)
+                            .multilineTextAlignment(.center)
+                    }
+                    
+                    Button(action: {
+                        viewModel.register()
+                    }) {
+                        Text("Register")
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .background(Color.green)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                    .disabled(viewModel.errorMessage.isEmpty)
+                
             }
-            .offset(y: -20)
+            .padding()
         }
         .edgesIgnoringSafeArea(.top)
     }

@@ -83,6 +83,8 @@ struct SearchView: View {
                         .onTapGesture {
                             withAnimation(.snappy) {
                                 selectedOption = .jobTitle
+                                searchInput = ""
+                                searchJob("")
                             }
                             
                         }
@@ -123,6 +125,8 @@ struct SearchView: View {
                         .onTapGesture {
                             withAnimation(.snappy) {
                                 selectedOption = .location
+                                searchInput = ""
+                                searchJob("")
                             }
                             
                         }
@@ -162,8 +166,9 @@ struct SearchView: View {
                         .onTapGesture {
                             withAnimation(.snappy) {
                                 selectedOption = .employmentType
+                                searchInput = ""
+                                searchJob("")
                             }
-                            
                         }
                 }
                 

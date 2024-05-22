@@ -6,16 +6,21 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct JobDetailsView: View {
     
     @StateObject var viewModel = AddPostViewViewModel()
     @Binding var newPostPresented: Bool
-    let job: Job
+    @State private var selectedOption: CheckboxOptions?
     
-    init(newPostPresented: Binding<Bool>, job: Job) {
+    let job: Job
+    let jbListViewModel: JobListViewModel
+    
+    init(newPostPresented: Binding<Bool>, job: Job, jobListViewModel: JobListViewModel) {
         self._newPostPresented = newPostPresented
         self.job = job
+        self.jbListViewModel = jobListViewModel
         _viewModel = StateObject(wrappedValue: AddPostViewViewModel())
     }
     
@@ -52,8 +57,14 @@ struct JobDetailsView: View {
                 TextField("State", text: $viewModel.state)
                     .textFieldStyle(DefaultTextFieldStyle())
                 
-                TextField("Employment Type", text: $viewModel.employment_type)
-                    .textFieldStyle(DefaultTextFieldStyle())
+                VStack(alignment: .leading, spacing: 10) {
+                                   Text("Employment Type")
+                                       .font(.headline)
+                    ForEach(CheckboxOptions.allCases, id: \.self) { option in
+                                       CheckboxRow(option: option, selectedOption: $selectedOption)
+                                   }
+                               }
+                               .padding(.vertical)
                 
                 TextField("Working schedule", text: $viewModel.working_schedule)
                     .textFieldStyle(DefaultTextFieldStyle())
@@ -68,28 +79,37 @@ struct JobDetailsView: View {
                 DatePicker ("Due date", selection: $viewModel.dueDate)
                     .datePickerStyle(GraphicalDatePickerStyle())
                 
-                Button(action: {
-                    if !viewModel.canEdit(creatorID: viewModel.creatorID) {
-                           viewModel.showAlert = true
-                           viewModel.errorMessage = "Creator can only update job. Is this a mistake? "
-                       } else if viewModel.canUpdate {
-                           viewModel.update(id: job.id)
-                           newPostPresented = false
-                       } else {
-                           viewModel.showAlert = true
-                           viewModel.errorMessage = "All fields are required or did you select an earlier date ? "
-                       }
-                }) {
-                    Text("Save")
-                        .padding()
-                        .background(Color.pink)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
+                MgButton(title: (jbListViewModel.userCreatedJob(job) ? "Save" : "Apply"), backgroundColor: (jbListViewModel.userCreatedJob(job) ? viewModel.canUpdate() ? Color.blue: Color.gray : Color.pink)){
+                    
+                    if (job.creator_id == Auth.auth().currentUser?.uid) {
+                        if !viewModel.canEdit(creatorID: viewModel.creatorID) {
+                            viewModel.showAlert = true
+                            viewModel.errorMessage = "Creator can only update job. Is this a mistake? "
+                        } else if viewModel.canUpdate() {
+                            viewModel.update(id: job.id)
+                            newPostPresented = false
+                            jbListViewModel.retrieveAllPublishedJobs()
+                        } else {
+                            viewModel.showAlert = true
+                            viewModel.errorMessage = "All fields are required or did you select an earlier date ? "
+                        }
+                    } else {
+                        if jbListViewModel.canSendMail() {
+                            jbListViewModel.sendEmail(title: job.title, to: job.creator_email_address)
+                        } else {
+                            jbListViewModel.showErrorInSendMessage = true
+                        }
+                    }
+                    
                 }
-                .alert(isPresented: $viewModel.showAlert) {
-                    Alert(title: Text("Error"), message: Text(viewModel.errorMessage) )
-                }
+                .padding()
+                .cornerRadius(8)
+                .disabled(!viewModel.canUpdate())
             }
+            .alert(isPresented: $viewModel.showAlert) {
+                Alert(title: Text("Error"), message: Text(viewModel.errorMessage) )
+            }
+            
         }
         .onAppear {
             // Pre-fill the form with the job details
@@ -132,5 +152,5 @@ struct JobDetailsView: View {
         dueDate: Date().timeIntervalSince1970,
         createdDate: Date().timeIntervalSince1970,
         isPublished: false
-    ))
+    ), jobListViewModel: JobListViewModel())
 }

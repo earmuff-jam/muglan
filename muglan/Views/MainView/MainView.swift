@@ -28,6 +28,10 @@ struct MainView: View {
                 .tabItem {
                     Label("Home", systemImage: "house")
                 }
+            DraftJobListView()
+                .tabItem {
+                    Label("Draft", systemImage: "note.text")
+                }
             ProfileView(userID: viewModel.currentUserID)
                 .tabItem {
                     Label("Profile", systemImage: "person.circle")

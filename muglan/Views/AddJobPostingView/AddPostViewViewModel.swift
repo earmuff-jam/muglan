@@ -37,7 +37,7 @@ class AddPostViewViewModel: ObservableObject {
     init () {}
     
     func update(id: String) {
-        guard canUpdate else {
+        guard canUpdate() else {
             return;
         }
         
@@ -157,8 +157,7 @@ class AddPostViewViewModel: ObservableObject {
     }
     
     
-    var canUpdate: Bool {
-        
+    func canUpdate() -> Bool {
         
         guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
